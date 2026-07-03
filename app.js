@@ -195,7 +195,14 @@ function openModal(p) {
   $('modal-iucn').innerHTML = p.iucn ? `<span class="iucn iucn-${p.iucn}">${p.iucn}</span> ${IUCN_LABEL[p.iucn] ? IUCN_LABEL[p.iucn][LANG] : ''}` : tr().unranked;
   $('modal-desc').textContent = descOf(p) || '';
   const wiki = LANG === 'zh' ? `https://zh.wikipedia.org/wiki/${encodeURIComponent(p.zh || p.sci || '')}` : `https://en.wikipedia.org/wiki/${encodeURIComponent((p.en || p.sci || '').replace(/ /g, '_'))}`;
-  $('modal-credit').innerHTML = p.file ? `<span class="mc-label">${LANG === 'zh' ? '图片来源' : 'Image'}:</span> <a href="https://commons.wikimedia.org/wiki/File:${encodeURIComponent(p.file)}" target="_blank" rel="noopener">Wikimedia Commons</a> · <a href="${wiki}" target="_blank" rel="noopener">${tr().origin}</a>` : `<a href="${wiki}" target="_blank" rel="noopener">${tr().origin}</a>`;
+  const commons = p.file ? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(p.file)}` : null;
+  if (commons) {
+    const by = p.cr_by ? `${LANG === 'zh' ? '摄影/作者' : 'By'}: ${esc(p.cr_by)} · ` : '';
+    const lic = p.cr_lic ? (p.cr_licurl ? `<a href="${esc(p.cr_licurl)}" target="_blank" rel="noopener">${esc(p.cr_lic)}</a>` : esc(p.cr_lic)) : '';
+    $('modal-credit').innerHTML = `<span class="mc-label">${LANG === 'zh' ? '图片' : 'Image'}:</span> ${by}<a href="${commons}" target="_blank" rel="noopener">Wikimedia Commons</a>${lic ? ' · ' + lic : ''} · <a href="${wiki}" target="_blank" rel="noopener">${tr().origin}</a>`;
+  } else {
+    $('modal-credit').innerHTML = `<a href="${wiki}" target="_blank" rel="noopener">${tr().origin}</a>`;
+  }
   const idx = filtered.indexOf(p);
   $('modal-num').textContent = `${idx >= 0 ? idx + 1 : '?'} / ${filtered.length}`;
   updateModalFav();

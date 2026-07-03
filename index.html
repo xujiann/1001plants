@@ -13,6 +13,7 @@
 <meta property="og:title" content="1001 种植物 · 1001 Plants of the World">
 <meta property="og:description" content="精选全球 1001 种代表性植物 · 从苔藓蕨类到万紫千红的被子植物">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%233fa85f'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='white' font-family='Georgia,serif'%3E%E2%9C%BF%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{--accent:#3fa85f;--accent2:#63c47f;--bg:#0a0f0a;--bg2:#101710;--bg3:#162016;--bg4:#1e2c1e;--border:#26362a;--gold:#d4a843}
 /* IUCN 保护等级徽章 */
@@ -185,5 +186,10 @@
 
 <script defer src="plants.js"></script>
 <script defer src="app.js"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
 </body>
 </html>

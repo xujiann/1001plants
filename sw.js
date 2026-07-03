@@ -1,0 +1,68 @@
+/* 1001 种植物 — Service Worker
+   - 外壳（HTML/CSS/JS）：stale-while-revalidate
+   - 图片（jsDelivr CDN）：cache-first，按需缓存，离线可回看已浏览物种
+*/
+const SHELL = "plants1001-shell-v1";
+const IMGS  = "plants1001-img-v1";
+const IMG_CDN = "cdn.jsdelivr.net";   // 图片走 jsDelivr（xujiann/1001plants-img）
+const SHELL_ASSETS = [
+  "./", "./index.html", "./style.css", "./plants.js", "./app.js", "./manifest.webmanifest"
+];
+
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_ASSETS)).then(() => self.skipWaiting()));
+});
+
+self.addEventListener("activate", e => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k !== SHELL && k !== IMGS).map(k => caches.delete(k))
+    )).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", e => {
+  const req = e.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+
+  // 图片：本地 images/ 或 jsDelivr CDN → cache-first（离线可回看已浏览物种）。
+  const isImg = url.pathname.includes("/images/") &&
+    (url.origin === location.origin || url.hostname === IMG_CDN);
+  if (isImg) {
+    e.respondWith(
+      caches.open(IMGS).then(cache =>
+        cache.match(req).then(hit => hit || fetch(url.href, { mode: "cors" }).then(res => {
+          if (res && res.ok) cache.put(req, res.clone());
+          return res;
+        }).catch(() => fetch(req)))
+      )
+    );
+    return;
+  }
+
+  if (url.origin !== location.origin) return; // 其余仅处理同源
+
+  // 页面与数据：network-first（在线总是最新，离线回退缓存）
+  const p = url.pathname;
+  const isDoc = req.mode === "navigate" || p.endsWith("/") || p.endsWith("/index.html") || p.endsWith("/plants.js");
+  if (isDoc) {
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res.ok) { const cl = res.clone(); caches.open(SHELL).then(c => c.put(req, cl)); }
+        return res;
+      }).catch(() => caches.match(req).then(hit => hit || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  // 外壳：stale-while-revalidate
+  e.respondWith(
+    caches.open(SHELL).then(cache =>
+      cache.match(req).then(hit => {
+        const net = fetch(req).then(res => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => hit);
+        return hit || net;
+      })
+    )
+  );
+});

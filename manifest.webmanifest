@@ -1,0 +1,13 @@
+{
+  "name": "1001 种植物 · 1001 Plants of the World",
+  "short_name": "1001植物",
+  "description": "精选全球 1001 种代表性植物，按 APG IV 分类系统从苔藓、蕨类、裸子到被子植物。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0f0a",
+  "theme_color": "#0a0f0a",
+  "icons": [
+    { "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%233fa85f'/%3E%3Ctext x='96' y='134' font-size='112' text-anchor='middle' fill='white' font-family='Georgia,serif'%3E%E2%9C%BF%3C/text%3E%3C/svg%3E", "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%233fa85f'/%3E%3Ctext x='256' y='356' font-size='300' text-anchor='middle' fill='white' font-family='Georgia,serif'%3E%E2%9C%BF%3C/text%3E%3C/svg%3E", "sizes": "512x512", "type": "image/svg+xml" }
+  ]
+}
