@@ -2,7 +2,7 @@
    - 外壳（HTML/CSS/JS）：stale-while-revalidate
    - 图片（jsDelivr CDN）：cache-first，按需缓存，离线可回看已浏览物种
 */
-const SHELL = "plants1001-shell-v2";
+const SHELL = "plants1001-shell-v3";
 const IMGS  = "plants1001-img-v1";
 const IMG_CDN = "cdn.jsdelivr.net";   // 图片走 jsDelivr（xujiann/1001plants-img）
 const SHELL_ASSETS = [

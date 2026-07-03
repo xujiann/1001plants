@@ -84,7 +84,7 @@ function card(p) {
   el.dataset.id = p.id;
   const on = favs.has(p.id) ? ' on' : '';
   const iucn = p.iucn ? `<span class="iucn iucn-${p.iucn}">${p.iucn}</span> ` : '';
-  const sci = p.sci ? `<div class="card-sci">${esc(p.sci)}</div>` : '';
+  const sci = (p.sci && nameOf(p) !== p.sci) ? `<div class="card-sci">${esc(p.sci)}</div>` : '';
   el.innerHTML =
     `<button class="card-fav${on}" data-fav="${p.id}" title="收藏">${favs.has(p.id) ? '♥' : '♡'}</button>` +
     `<span class="card-num">${p.id}</span>` +
@@ -188,7 +188,7 @@ function openModal(p) {
   $('modal-img').alt = nameOf(p);
   $('modal-family').textContent = familyName(p);
   $('modal-title').innerHTML = esc(nameOf(p));
-  $('modal-sci').textContent = p.sci || '';
+  $('modal-sci').textContent = (p.sci && nameOf(p) !== p.sci) ? p.sci : '';
   $('modal-order').textContent = orderName(p) + (LANG === 'zh' && p.order_en ? ` · ${p.order_en}` : '');
   $('modal-family2').textContent = familyName(p) + (LANG === 'zh' && p.family_en ? ` · ${p.family_en}` : '');
   const iu = p.iucn ? `${p.iucn} · ${IUCN_LABEL[p.iucn] ? IUCN_LABEL[p.iucn][LANG] : ''}` : tr().unranked;
