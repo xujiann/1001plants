@@ -10,18 +10,18 @@ const imgURL = p => p ? IMG_BASE + p : '';
 let LANG = localStorage.getItem('lang1001p') || 'zh';
 const T = {
   zh: { sub:' 种植物', tagline:'从苔藓蕨类到万紫千红的被子植物', works:'种', fams:'科', orders:'目',
-    search:'搜索名称、学名、科属、拼音…', allOrder:'全部目', allFam:'全部科', allIucn:'全部保护等级',
+    search:'搜索名称、学名、科属、拼音…', allOrder:'全部目', allFam:'全部科', allIucn:'全部保护等级', allHabit:'全部生活型', allOrigin:'全部原产地',
     sortDefault:'默认（知名度）', sortTaxo:'分类顺序', sortName:'按名称', taxo:'按分类', fav:'♥ 收藏',
-    daily:'每日一株', random:'随机', order:'目', family:'科', iucn:'保护等级', prev:'← 上一株', next:'下一株 →',
+    daily:'每日一株', random:'随机', order:'目', family:'科', iucn:'保护等级', lHabit:'生活型', lOrigin:'原产地', prev:'← 上一株', next:'下一株 →',
     nores:'未找到符合条件的植物', reset:'重置筛选', footer:'精选全球 1001 种代表性植物 · 按 APG IV 分类系统',
     about:'关于本站', source:'wiki', origin:'查看维基百科词条 →', none:'—', unranked:'未评估',
     aboutIntro:'本站精选全球约 40 万种植物中的 1001 种代表性物种，覆盖苔藓、蕨类、裸子植物到被子植物的主要目与科。每一科至少收录一种（保底覆盖），物种丰富的大科按比例配额，力求呈现植物界的整体面貌。',
     aboutSrc:'数据来自维基数据（Wikidata）结构化数据、维基共享资源（Wikimedia Commons）图片与维基百科简介，均为公共知识资源。',
     aboutCred:'图片版权归各自作者，遵循 CC 等自由许可。本站为非商业科普项目。' },
   en: { sub:' Plants', tagline:'From mosses and ferns to the flowering multitudes', works:'species', fams:'families', orders:'orders',
-    search:'Search name, scientific name, family, pinyin…', allOrder:'All orders', allFam:'All families', allIucn:'All IUCN status',
+    search:'Search name, scientific name, family, pinyin…', allOrder:'All orders', allFam:'All families', allIucn:'All IUCN status', allHabit:'All habits', allOrigin:'All regions',
     sortDefault:'Default (notability)', sortTaxo:'Taxonomic order', sortName:'By name', taxo:'By taxonomy', fav:'♥ Saved',
-    daily:'Plant of the day', random:'Random', order:'Order', family:'Family', iucn:'IUCN status', prev:'← Prev', next:'Next →',
+    daily:'Plant of the day', random:'Random', order:'Order', family:'Family', iucn:'IUCN status', lHabit:'Habit', lOrigin:'Native to', prev:'← Prev', next:'Next →',
     nores:'No plants match your filters', reset:'Reset filters', footer:'A curated gallery of 1001 representative plant species · APG IV',
     about:'About', source:'wiki', origin:'View Wikipedia article →', none:'—', unranked:'Not evaluated',
     aboutIntro:'1001 representative species selected from the ~400,000 plant species on Earth, spanning mosses, ferns, gymnosperms and the major orders and families of flowering plants. Every family gets at least one entry; species-rich families receive proportional quotas.',
@@ -37,11 +37,18 @@ const IUCN_ORDER = ['EX','EW','CR','EN','VU','NT','LC','DD'];
 const IUCN_LABEL = { LC:{zh:'无危',en:'Least Concern'}, NT:{zh:'近危',en:'Near Threatened'}, VU:{zh:'易危',en:'Vulnerable'},
   EN:{zh:'濒危',en:'Endangered'}, CR:{zh:'极危',en:'Critically Endangered'}, EW:{zh:'野外灭绝',en:'Extinct in the Wild'},
   EX:{zh:'灭绝',en:'Extinct'}, DD:{zh:'数据缺乏',en:'Data Deficient'} };
+// habit (生活型) display order + EN labels; region (原产地) EN labels
+const HABIT_ORDER = ['乔木','灌木','草本','藤本','多肉','禾草','竹','棕榈','针叶树','蕨类','苔藓'];
+const HABIT_EN = { 乔木:'Tree', 灌木:'Shrub', 草本:'Herb', 藤本:'Vine', 多肉:'Succulent', 禾草:'Grass', 竹:'Bamboo', 棕榈:'Palm', 针叶树:'Conifer', 蕨类:'Fern', 苔藓:'Moss' };
+const REGION_ORDER = ['亚洲','欧洲','非洲','北美洲','南美洲','大洋洲'];
+const REGION_EN = { 亚洲:'Asia', 欧洲:'Europe', 非洲:'Africa', 北美洲:'N. America', 南美洲:'S. America', 大洋洲:'Oceania' };
+const habitLabel = h => h ? (LANG === 'zh' ? h : (HABIT_EN[h] || h)) : '';
+const regionLabel = z => LANG === 'zh' ? z : (REGION_EN[z] || z);
 
 // ---------- state ----------
 let favs = new Set(JSON.parse(localStorage.getItem('favs1001p') || '[]'));
 const saveFavs = () => localStorage.setItem('favs1001p', JSON.stringify([...favs]));
-let state = { q:'', order:'', family:'', iucn:'', sort:'default', favOnly:false, page:1, taxoView:false };
+let state = { q:'', order:'', family:'', iucn:'', habit:'', origin:'', sort:'default', favOnly:false, page:1, taxoView:false };
 const PER = 120;
 let filtered = DATA.slice();
 let listView = false;
@@ -57,8 +64,10 @@ function applyFilters() {
     if (state.order && p.order_en !== state.order) return false;
     if (state.family && p.family_en !== state.family) return false;
     if (state.iucn && p.iucn !== state.iucn) return false;
+    if (state.habit && p.habit !== state.habit) return false;
+    if (state.origin && !(p.origin || []).includes(state.origin)) return false;
     if (q) {
-      const hay = [p.zh, p.en, p.sci, p.family_zh, p.family_en, p.order_zh, p.order_en, p.py].join(' ').toLowerCase();
+      const hay = [p.zh, p.en, p.sci, p.family_zh, p.family_en, p.order_zh, p.order_en, p.habit, (p.origin || []).join(' '), p.py].join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -85,6 +94,7 @@ function card(p) {
   const on = favs.has(p.id) ? ' on' : '';
   const iucn = p.iucn ? `<span class="iucn iucn-${p.iucn}">${p.iucn}</span> ` : '';
   const sci = (p.sci && nameOf(p) !== p.sci) ? `<div class="card-sci">${esc(p.sci)}</div>` : '';
+  const habit = p.habit ? ` · ${esc(habitLabel(p.habit))}` : '';
   el.innerHTML =
     `<button class="card-fav${on}" data-fav="${p.id}" title="收藏">${favs.has(p.id) ? '♥' : '♡'}</button>` +
     `<span class="card-num">${p.id}</span>` +
@@ -92,7 +102,7 @@ function card(p) {
       `<img alt="${esc(nameOf(p))}" data-src="${imgURL(p.thumb || p.img)}">` +
     `</div>` +
     `<div class="card-body">` +
-      `<div class="card-era">${iucn}${esc(familyName(p))}</div>` +
+      `<div class="card-era">${iucn}${esc(familyName(p))}${habit}</div>` +
       `<div class="card-title">${esc(nameOf(p))}</div>` +
       sci +
     `</div>`;
@@ -191,6 +201,8 @@ function openModal(p) {
   $('modal-sci').textContent = (p.sci && nameOf(p) !== p.sci) ? p.sci : '';
   $('modal-order').textContent = orderName(p) + (LANG === 'zh' && p.order_en ? ` · ${p.order_en}` : '');
   $('modal-family2').textContent = familyName(p) + (LANG === 'zh' && p.family_en ? ` · ${p.family_en}` : '');
+  $('modal-habit').textContent = p.habit ? habitLabel(p.habit) : tr().none;
+  $('modal-origin').textContent = (p.origin && p.origin.length) ? p.origin.map(regionLabel).join(LANG === 'zh' ? '、' : ', ') : tr().none;
   const iu = p.iucn ? `${p.iucn} · ${IUCN_LABEL[p.iucn] ? IUCN_LABEL[p.iucn][LANG] : ''}` : tr().unranked;
   $('modal-iucn').innerHTML = p.iucn ? `<span class="iucn iucn-${p.iucn}">${p.iucn}</span> ${IUCN_LABEL[p.iucn] ? IUCN_LABEL[p.iucn][LANG] : ''}` : tr().unranked;
   $('modal-desc').textContent = descOf(p) || '';
@@ -256,6 +268,7 @@ function toggleFav(id) {
 }
 function syncFilterSelects() {
   $('order-filter').value = state.order; $('family-filter').value = state.family; $('iucn-filter').value = state.iucn;
+  $('habit-filter').value = state.habit; $('origin-filter').value = state.origin;
 }
 
 // ---------- populate filters ----------
@@ -268,6 +281,10 @@ function fillFilters() {
   fams.forEach(p => { const o = document.createElement('option'); o.value = p.family_en; o.textContent = LANG === 'zh' ? `${p.family_zh} ${p.family_en}` : p.family_en; ff.appendChild(o); });
   const iu = $('iucn-filter');
   IUCN_ORDER.filter(c => DATA.some(p => p.iucn === c)).forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = `${c} · ${IUCN_LABEL[c][LANG]}`; iu.appendChild(o); });
+  const hf = $('habit-filter');
+  HABIT_ORDER.filter(h => DATA.some(p => p.habit === h)).forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = LANG === 'zh' ? h : HABIT_EN[h]; hf.appendChild(o); });
+  const rf = $('origin-filter');
+  REGION_ORDER.filter(z => DATA.some(p => (p.origin || []).includes(z))).forEach(z => { const o = document.createElement('option'); o.value = z; o.textContent = LANG === 'zh' ? z : REGION_EN[z]; rf.appendChild(o); });
 }
 
 // ---------- language ----------
@@ -282,9 +299,14 @@ function applyLang() {
   $('order-filter').options[0].textContent = t.allOrder;
   $('family-filter').options[0].textContent = t.allFam;
   $('iucn-filter').options[0].textContent = t.allIucn;
+  $('habit-filter').options[0].textContent = t.allHabit;
+  $('origin-filter').options[0].textContent = t.allOrigin;
+  [...$('habit-filter').options].slice(1).forEach(o => o.textContent = LANG === 'zh' ? o.value : (HABIT_EN[o.value] || o.value));
+  [...$('origin-filter').options].slice(1).forEach(o => o.textContent = LANG === 'zh' ? o.value : (REGION_EN[o.value] || o.value));
   const sf = $('sort-filter'); sf.options[0].textContent = t.sortDefault; sf.options[1].textContent = t.sortTaxo; sf.options[2].textContent = t.sortName;
   $('taxo-btn').textContent = t.taxo; $('fav-only-btn').textContent = t.fav; $('daily-btn').textContent = t.daily; $('random-btn').textContent = t.random;
   $('l-order').textContent = t.order; $('l-family').textContent = t.family; $('l-iucn').textContent = t.iucn;
+  $('l-habit').textContent = t.lHabit; $('l-origin').textContent = t.lOrigin;
   $('prev-art').textContent = t.prev; $('next-art').textContent = t.next;
   $('t-noresults').textContent = t.nores; $('reset-btn').textContent = t.reset;
   $('t-footer').textContent = t.footer; $('about-btn').textContent = t.about; $('about-title').textContent = t.about;
@@ -301,13 +323,15 @@ function bind() {
   $('order-filter').onchange = e => { state.order = e.target.value; state.page = 1; renderGallery(); };
   $('family-filter').onchange = e => { state.family = e.target.value; state.page = 1; renderGallery(); };
   $('iucn-filter').onchange = e => { state.iucn = e.target.value; state.page = 1; renderGallery(); };
+  $('habit-filter').onchange = e => { state.habit = e.target.value; state.page = 1; renderGallery(); };
+  $('origin-filter').onchange = e => { state.origin = e.target.value; state.page = 1; renderGallery(); };
   $('sort-filter').onchange = e => { state.sort = e.target.value; state.page = 1; renderGallery(); };
   $('taxo-btn').onclick = () => toggleTaxo();
   $('fav-only-btn').onclick = () => { state.favOnly = !state.favOnly; $('fav-only-btn').classList.toggle('active', state.favOnly); state.page = 1; renderGallery(); };
   $('random-btn').onclick = () => { const p = filtered[Math.floor(Math.random() * filtered.length)] || DATA[Math.floor(Math.random() * DATA.length)]; if (p) openModal(p); };
   $('daily-btn').onclick = () => { const day = Math.floor(Date.now() / 864e5); openModal(DATA[day % DATA.length]); };
   $('view-toggle').onclick = () => { listView = !listView; $('view-toggle').textContent = listView ? '☰' : '⊞'; renderGallery(); };
-  $('reset-btn').onclick = () => { state = { q:'', order:'', family:'', iucn:'', sort:'default', favOnly:false, page:1, taxoView:false }; $('search').value = ''; syncFilterSelects(); $('sort-filter').value = 'default'; $('fav-only-btn').classList.remove('active'); renderGallery(); };
+  $('reset-btn').onclick = () => { state = { q:'', order:'', family:'', iucn:'', habit:'', origin:'', sort:'default', favOnly:false, page:1, taxoView:false }; $('search').value = ''; syncFilterSelects(); $('sort-filter').value = 'default'; $('fav-only-btn').classList.remove('active'); renderGallery(); };
   // gallery delegation
   $('gallery').onclick = e => {
     const fav = e.target.closest('[data-fav]');
