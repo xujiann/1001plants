@@ -1,0 +1,5 @@
+.claude/
+_*
+node_modules/
+images/
+plants.js.bak

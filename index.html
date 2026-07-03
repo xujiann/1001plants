@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="1001植物">
+<title>1001 种植物 · 1001 Plants of the World</title>
+<meta name="description" content="精选并展示全球 1001 种代表性植物，按 APG IV 分类系统从苔藓、蕨类、裸子到被子植物。A curated bilingual field-guide gallery of 1001 representative plant species.">
+<meta name="theme-color" content="#0a0f0a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="1001 种植物 · 1001 Plants of the World">
+<meta property="og:description" content="精选全球 1001 种代表性植物 · 从苔藓蕨类到万紫千红的被子植物">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%233fa85f'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='white' font-family='Georgia,serif'%3E%E2%9C%BF%3C/text%3E%3C/svg%3E">
+<style>
+:root{--accent:#3fa85f;--accent2:#63c47f;--bg:#0a0f0a;--bg2:#101710;--bg3:#162016;--bg4:#1e2c1e;--border:#26362a;--gold:#d4a843}
+/* IUCN 保护等级徽章 */
+.iucn{display:inline-block;padding:1px 6px;border-radius:9px;font-size:0.6rem;font-weight:700;letter-spacing:0.04em;vertical-align:middle}
+.iucn-LC{background:#1f5c33;color:#8ef0ab}.iucn-NT{background:#4d5320;color:#e2ea82}
+.iucn-VU{background:#6b5417;color:#f7cf6b}.iucn-EN{background:#6e3a16;color:#f7a86b}
+.iucn-CR{background:#6e1e1e;color:#f78b8b}.iucn-EW{background:#3a1e5c;color:#c79bf0}
+.iucn-EX{background:#333;color:#bbb}.iucn-DD{background:#2a3340;color:#9fb4c8}
+.card-sci{font-style:italic;font-size:0.74rem;color:var(--text3);margin-top:0.15rem}
+.modal-sci{font-style:italic}
+/* 分类导航（目→科 折叠树） */
+.taxo-index{max-width:1400px;margin:0 auto;padding:0.5rem 2rem 1rem;display:none;flex-direction:column;gap:0.4rem}
+.taxo-index.show{display:flex}
+.taxo-order{border:1px solid var(--border);border-radius:10px;background:var(--bg2);overflow:hidden}
+.taxo-order-head{display:flex;align-items:center;gap:0.6rem;padding:0.7rem 1rem;cursor:pointer;transition:background var(--trans)}
+.taxo-order-head:hover{background:var(--bg3)}
+.taxo-order-head .to-name{font-family:var(--font-serif);font-size:1.05rem;color:#fff}
+.taxo-order-head .to-en{font-size:0.78rem;color:var(--text3);font-style:italic}
+.taxo-order-head .to-cnt{margin-left:auto;font-size:0.75rem;color:var(--accent2)}
+.taxo-order-head .to-arrow{color:var(--text3);transition:transform var(--trans)}
+.taxo-order.open .to-arrow{transform:rotate(90deg)}
+.taxo-fams{display:none;flex-wrap:wrap;gap:0.4rem;padding:0 1rem 0.85rem}
+.taxo-order.open .taxo-fams{display:flex}
+.taxo-fam{padding:0.3rem 0.7rem;border-radius:16px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:0.76rem;cursor:pointer;transition:all var(--trans)}
+.taxo-fam:hover{border-color:var(--accent);color:var(--accent2)}
+.taxo-fam small{color:var(--text3);margin-left:4px}
+</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-title">
+      <h1><span id="t-main">1001</span><span id="t-sub"> 种植物</span></h1>
+      <p class="subtitle" id="t-subtitle">从苔藓蕨类到万紫千红的被子植物</p>
+    </div>
+    <div class="header-right">
+      <div class="header-stats" id="stats">
+        <span class="stat"><strong id="shown-count">1001</strong> <span id="t-works">种</span></span>
+        <span class="stat"><strong id="fam-count">0</strong> <span id="t-fams">科</span></span>
+        <span class="stat"><strong id="order-count">0</strong> <span id="t-orders">目</span></span>
+      </div>
+      <button id="lang-toggle" class="lang-btn" title="语言 / Language">EN</button>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search" placeholder="搜索名称、学名、科属、拼音…" autocomplete="off">
+    <button class="clear-btn" id="clear-search" title="清除">✕</button>
+  </div>
+  <div class="filter-row">
+    <select id="order-filter"><option value="">全部目</option></select>
+    <select id="family-filter"><option value="">全部科</option></select>
+    <select id="iucn-filter"><option value="">全部保护等级</option></select>
+    <select id="sort-filter" aria-label="排序">
+      <option value="default">默认（知名度）</option>
+      <option value="taxo">分类顺序</option>
+      <option value="name">按名称</option>
+    </select>
+    <button id="taxo-btn" class="btn-outline btn-text">按分类</button>
+    <button id="fav-only-btn" class="btn-outline btn-text">♥ 收藏</button>
+    <button id="daily-btn" class="btn-outline btn-text">每日一株</button>
+    <button id="random-btn" class="btn-accent">随机</button>
+    <button id="view-toggle" class="btn-outline" title="切换视图">⊞</button>
+    <button id="help-btn" class="btn-outline" title="快捷键" aria-label="快捷键">?</button>
+  </div>
+</div>
+
+<div class="taxo-index" id="taxo-index"></div>
+
+<main class="gallery" id="gallery"></main>
+<div class="pagination" id="pagination"></div>
+
+<div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-label="植物详情">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close" aria-label="关闭">✕</button>
+    <div class="modal-content">
+      <div class="modal-img-wrap" id="modal-img-wrap">
+        <img id="modal-img" alt="">
+        <button class="zoom-badge" id="zoom-badge" title="放大">⛶</button>
+      </div>
+      <div class="modal-info">
+        <div class="modal-head">
+          <div class="modal-era-badge" id="modal-family"></div>
+          <div class="modal-head-actions">
+            <button class="modal-fav" id="modal-fav">♡ 收藏</button>
+            <button class="modal-share" id="modal-share" title="复制链接">⎘</button>
+          </div>
+        </div>
+        <h2 id="modal-title"></h2>
+        <p class="modal-artist modal-sci" id="modal-sci"></p>
+        <dl class="modal-meta">
+          <dt id="l-order">目</dt><dd id="modal-order"></dd>
+          <dt id="l-family">科</dt><dd id="modal-family2"></dd>
+          <dt id="l-iucn">保护等级</dt><dd id="modal-iucn"></dd>
+        </dl>
+        <p class="modal-desc" id="modal-desc"></p>
+        <p class="modal-credit" id="modal-credit"></p>
+        <div class="modal-nav">
+          <button id="prev-art">← 上一株</button>
+          <span id="modal-num"></span>
+          <button id="next-art">下一株 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="高清大图">
+  <div class="lightbox-toolbar">
+    <span class="lb-caption" id="lb-caption"></span>
+    <span class="lb-actions">
+      <button id="lb-zoomout" title="缩小">－</button>
+      <button id="lb-zoomin" title="放大">＋</button>
+      <button id="lb-reset" title="重置">⟲</button>
+      <a id="lb-original" href="#" target="_blank" rel="noopener" class="lb-link" title="查看原图">⧉ <span id="t-original">原图</span></a>
+      <button id="lb-close" title="关闭">✕</button>
+    </span>
+  </div>
+  <div class="lightbox-stage" id="lb-stage">
+    <img id="lb-img" alt="" draggable="false">
+    <div class="lb-spinner" id="lb-spinner"></div>
+  </div>
+  <div class="lb-hint" id="lb-hint">滚轮缩放 · 双击放大 · 拖动平移</div>
+</div>
+
+<div class="no-results" id="no-results" style="display:none">
+  <p id="t-noresults">未找到符合条件的植物</p>
+  <button id="reset-btn">重置筛选</button>
+</div>
+
+<div class="help-overlay" id="help-overlay" role="dialog" aria-modal="true" aria-label="键盘快捷键">
+  <div class="help-box">
+    <button class="help-close" id="help-close" aria-label="关闭">✕</button>
+    <h2 id="help-title">快捷键</h2>
+    <dl class="help-list">
+      <dt><kbd>/</kbd></dt><dd id="kbd-search">聚焦搜索框</dd>
+      <dt><kbd>R</kbd></dt><dd id="kbd-random">随机一株</dd>
+      <dt><kbd>C</kbd></dt><dd id="kbd-taxo">切换分类视图</dd>
+      <dt><kbd>F</kbd></dt><dd id="kbd-fav">切换仅看收藏</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd id="kbd-nav">上一株 / 下一株</dd>
+      <dt><kbd>Esc</kbd></dt><dd id="kbd-close">关闭弹窗</dd>
+      <dt><kbd>?</kbd></dt><dd id="kbd-help">显示本帮助</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="about-overlay" id="about-overlay" role="dialog" aria-modal="true" aria-label="关于本站">
+  <div class="about-box">
+    <button class="help-close" id="about-close" aria-label="关闭">✕</button>
+    <div class="about-logo">✿</div>
+    <h2 id="about-title">关于本站</h2>
+    <div class="about-stats" id="about-stats"></div>
+    <p id="about-intro"></p>
+    <p id="about-sources"></p>
+    <p class="about-credits" id="about-credits"></p>
+  </div>
+</div>
+
+<div id="live" class="sr-only" aria-live="polite"></div>
+<button id="to-top" class="to-top" aria-label="回到顶部" title="回到顶部">↑</button>
+
+<footer class="site-footer">
+  <p id="t-footer">精选全球 1001 种代表性植物 · 按 APG IV 分类系统</p>
+  <button class="footer-about" id="about-btn">关于本站</button>
+</footer>
+
+<script defer src="plants.js"></script>
+<script defer src="app.js"></script>
+</body>
+</html>
