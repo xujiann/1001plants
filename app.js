@@ -3,7 +3,7 @@
 (function () {
 const DATA = (window.PLANT_DATA || []).slice();
 const $ = id => document.getElementById(id);
-const IMG_BASE = 'https://cdn.jsdelivr.net/gh/xujiann/1001plants-img@v2/'; // images hosted in separate repo, served via jsDelivr (v2 adds images/i/ botanical plates)
+const IMG_BASE = "https://cdn.jsdelivr.net/gh/xujiann/1001plants-img@v3/"; // v3 adds the expansion species (ids 1002+)
 const imgURL = p => p ? IMG_BASE + p : '';
 
 // ---------- i18n ----------
@@ -15,8 +15,8 @@ const T = {
     daily:'每日一株', random:'随机', order:'目', family:'科', iucn:'保护等级', lHabit:'生活型', lOrigin:'原产地', prev:'← 上一株', next:'下一株 →',
     nores:'未找到符合条件的植物', reset:'重置筛选', footer:'精选全球 1001 种代表性植物 · 按 APG IV 分类系统',
     about:'关于本站', source:'wiki', origin:'查看维基百科词条 →', none:'—', unranked:'未评估',
-    aboutIntro:'本站精选全球约 40 万种植物中的 1001 种代表性物种，覆盖苔藓、蕨类、裸子植物到被子植物的主要目与科。每一科至少收录一种（保底覆盖），物种丰富的大科按比例配额，力求呈现植物界的整体面貌。',
-    aboutSrc:'数据来自维基数据（Wikidata）结构化数据、维基共享资源（Wikimedia Commons）图片与维基百科简介，均为公共知识资源。点击「🎨 博物画」可切换到古典植物图谱视图——548 种配有 19 世纪铜版／石版画，来自科勒药用植物图鉴、雷杜德、柯蒂斯植物学杂志、Flora Batava 等经典图谱（均已进入公有领域）。',
+    aboutIntro:'本站精选全球约 40 万种植物中的 1001 种代表性物种，按 APG IV 分类系统覆盖 392 个科、76 个目——从苔藓、蕨类、裸子植物到被子植物。每一科至少收录一种（保底覆盖），物种丰富的大科按比例配额，力求呈现植物界分类的整体面貌。',
+    aboutSrc:'数据来自维基数据（Wikidata）结构化数据、维基共享资源（Wikimedia Commons）图片与维基百科简介，均为公共知识资源。点击「🎨 博物画」可切换到古典植物图谱视图——466 种配有 19 世纪铜版／石版画，来自科勒药用植物图鉴、雷杜德、柯蒂斯植物学杂志、Flora Batava 等经典图谱（均已进入公有领域）。',
     aboutCred:'照片版权归各自作者，遵循 CC 等自由许可；古典博物画属公有领域。本站为非商业科普项目。' },
   en: { sub:' Plants', tagline:'From mosses and ferns to the flowering multitudes', works:'species', fams:'families', orders:'orders',
     search:'Search name, scientific name, family, pinyin…', allOrder:'All orders', allFam:'All families', allIucn:'All IUCN status', allHabit:'All habits', allOrigin:'All regions',
@@ -24,8 +24,8 @@ const T = {
     daily:'Plant of the day', random:'Random', order:'Order', family:'Family', iucn:'IUCN status', lHabit:'Habit', lOrigin:'Native to', prev:'← Prev', next:'Next →',
     nores:'No plants match your filters', reset:'Reset filters', footer:'A curated gallery of 1001 representative plant species · APG IV',
     about:'About', source:'wiki', origin:'View Wikipedia article →', none:'—', unranked:'Not evaluated',
-    aboutIntro:'1001 representative species selected from the ~400,000 plant species on Earth, spanning mosses, ferns, gymnosperms and the major orders and families of flowering plants. Every family gets at least one entry; species-rich families receive proportional quotas.',
-    aboutSrc:'Data from Wikidata structured data, Wikimedia Commons images and Wikipedia intros — all open knowledge resources. Hit "🎨 Plates" to switch to the classic-illustration view: 548 species carry a 19th-century engraving or lithograph from Köhler\'s Medizinal-Pflanzen, Redouté, Curtis\'s Botanical Magazine, Flora Batava and other historic florilegia (all public domain).',
+    aboutIntro:'1001 representative species selected from the ~400,000 plant species on Earth, covering 392 families and 76 orders under the APG IV system — from mosses and ferns to gymnosperms and the flowering plants. Every family gets at least one entry; species-rich families receive proportional quotas.',
+    aboutSrc:'Data from Wikidata structured data, Wikimedia Commons images and Wikipedia intros — all open knowledge resources. Hit "🎨 Plates" to switch to the classic-illustration view: 466 species carry a 19th-century engraving or lithograph from Köhler\'s Medizinal-Pflanzen, Redouté, Curtis\'s Botanical Magazine, Flora Batava and other historic florilegia (all public domain).',
     aboutCred:'Photographs © their respective authors under CC and other free licenses; the historic plates are public domain. A non-commercial educational project.' },
 };
 const tr = () => T[LANG];
@@ -64,8 +64,8 @@ const PER = 120;
 let filtered = DATA.slice();
 let listView = false;
 
-// canonical taxonomic order = original id order (already phylogenetic from build)
-const taxoIndex = new Map(DATA.map((p, i) => [p.id, i]));
+// canonical taxonomic order = seq field (phylogenetic; id is a stable identity, not order)
+const taxoIndex = new Map(DATA.map((p, i) => [p.id, p.seq || i]));
 
 // ---------- filtering ----------
 function applyFilters() {
