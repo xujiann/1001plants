@@ -3,7 +3,7 @@
 (function () {
 const DATA = (window.PLANT_DATA || []).slice();
 const $ = id => document.getElementById(id);
-const IMG_BASE = 'https://cdn.jsdelivr.net/gh/xujiann/1001plants-img@v1/'; // images hosted in separate repo, served via jsDelivr
+const IMG_BASE = 'https://cdn.jsdelivr.net/gh/xujiann/1001plants-img@v2/'; // images hosted in separate repo, served via jsDelivr (v2 adds images/i/ botanical plates)
 const imgURL = p => p ? IMG_BASE + p : '';
 
 // ---------- i18n ----------
@@ -11,22 +11,22 @@ let LANG = localStorage.getItem('lang1001p') || 'zh';
 const T = {
   zh: { sub:' 种植物', tagline:'从苔藓蕨类到万紫千红的被子植物', works:'种', fams:'科', orders:'目',
     search:'搜索名称、学名、科属、拼音…', allOrder:'全部目', allFam:'全部科', allIucn:'全部保护等级', allHabit:'全部生活型', allOrigin:'全部原产地',
-    sortDefault:'默认（知名度）', sortTaxo:'分类顺序', sortName:'按名称', taxo:'按分类', fav:'♥ 收藏',
+    sortDefault:'默认（知名度）', sortTaxo:'分类顺序', sortName:'按名称', taxo:'按分类', fav:'♥ 收藏', illus:'🎨 博物画',
     daily:'每日一株', random:'随机', order:'目', family:'科', iucn:'保护等级', lHabit:'生活型', lOrigin:'原产地', prev:'← 上一株', next:'下一株 →',
     nores:'未找到符合条件的植物', reset:'重置筛选', footer:'精选全球 1001 种代表性植物 · 按 APG IV 分类系统',
     about:'关于本站', source:'wiki', origin:'查看维基百科词条 →', none:'—', unranked:'未评估',
     aboutIntro:'本站精选全球约 40 万种植物中的 1001 种代表性物种，覆盖苔藓、蕨类、裸子植物到被子植物的主要目与科。每一科至少收录一种（保底覆盖），物种丰富的大科按比例配额，力求呈现植物界的整体面貌。',
-    aboutSrc:'数据来自维基数据（Wikidata）结构化数据、维基共享资源（Wikimedia Commons）图片与维基百科简介，均为公共知识资源。',
-    aboutCred:'图片版权归各自作者，遵循 CC 等自由许可。本站为非商业科普项目。' },
+    aboutSrc:'数据来自维基数据（Wikidata）结构化数据、维基共享资源（Wikimedia Commons）图片与维基百科简介，均为公共知识资源。点击「🎨 博物画」可切换到古典植物图谱视图——548 种配有 19 世纪铜版／石版画，来自科勒药用植物图鉴、雷杜德、柯蒂斯植物学杂志、Flora Batava 等经典图谱（均已进入公有领域）。',
+    aboutCred:'照片版权归各自作者，遵循 CC 等自由许可；古典博物画属公有领域。本站为非商业科普项目。' },
   en: { sub:' Plants', tagline:'From mosses and ferns to the flowering multitudes', works:'species', fams:'families', orders:'orders',
     search:'Search name, scientific name, family, pinyin…', allOrder:'All orders', allFam:'All families', allIucn:'All IUCN status', allHabit:'All habits', allOrigin:'All regions',
-    sortDefault:'Default (notability)', sortTaxo:'Taxonomic order', sortName:'By name', taxo:'By taxonomy', fav:'♥ Saved',
+    sortDefault:'Default (notability)', sortTaxo:'Taxonomic order', sortName:'By name', taxo:'By taxonomy', fav:'♥ Saved', illus:'🎨 Plates',
     daily:'Plant of the day', random:'Random', order:'Order', family:'Family', iucn:'IUCN status', lHabit:'Habit', lOrigin:'Native to', prev:'← Prev', next:'Next →',
     nores:'No plants match your filters', reset:'Reset filters', footer:'A curated gallery of 1001 representative plant species · APG IV',
     about:'About', source:'wiki', origin:'View Wikipedia article →', none:'—', unranked:'Not evaluated',
     aboutIntro:'1001 representative species selected from the ~400,000 plant species on Earth, spanning mosses, ferns, gymnosperms and the major orders and families of flowering plants. Every family gets at least one entry; species-rich families receive proportional quotas.',
-    aboutSrc:'Data from Wikidata structured data, Wikimedia Commons images and Wikipedia intros — all open knowledge resources.',
-    aboutCred:'Images © their respective authors under CC and other free licenses. A non-commercial educational project.' },
+    aboutSrc:'Data from Wikidata structured data, Wikimedia Commons images and Wikipedia intros — all open knowledge resources. Hit "🎨 Plates" to switch to the classic-illustration view: 548 species carry a 19th-century engraving or lithograph from Köhler\'s Medizinal-Pflanzen, Redouté, Curtis\'s Botanical Magazine, Flora Batava and other historic florilegia (all public domain).',
+    aboutCred:'Photographs © their respective authors under CC and other free licenses; the historic plates are public domain. A non-commercial educational project.' },
 };
 const tr = () => T[LANG];
 const nameOf = p => LANG === 'zh' ? (p.zh || p.en || p.sci) : (p.en || p.sci || p.zh);
@@ -49,6 +49,17 @@ const regionLabel = z => LANG === 'zh' ? z : (REGION_EN[z] || z);
 let favs = new Set(JSON.parse(localStorage.getItem('favs1001p') || '[]'));
 const saveFavs = () => localStorage.setItem('favs1001p', JSON.stringify([...favs]));
 let state = { q:'', order:'', family:'', iucn:'', habit:'', origin:'', sort:'default', favOnly:false, page:1, taxoView:false };
+// image mode: 'photo' = the full 1001-species field guide; 'illus' = only species that have a
+// classic public-domain botanical plate, shown as art.
+let imgMode = localStorage.getItem('imgmode1001p') || 'photo';
+const hasIllus = p => !!p.illus_thumb;
+// which image to show for p, honouring the global mode and any per-species override
+const modalOverride = new Map(); // id -> 'photo' | 'illus'
+function pickImg(p, forModal) {
+  const want = (forModal && modalOverride.get(p.id)) || imgMode;
+  if (want === 'illus' && hasIllus(p)) return { img: p.illus_img, thumb: p.illus_thumb, ar: p.illus_ar || p.ar, illus: true };
+  return { img: p.img, thumb: p.thumb, ar: p.ar, illus: false };
+}
 const PER = 120;
 let filtered = DATA.slice();
 let listView = false;
@@ -60,6 +71,7 @@ const taxoIndex = new Map(DATA.map((p, i) => [p.id, i]));
 function applyFilters() {
   const q = state.q.trim().toLowerCase();
   filtered = DATA.filter(p => {
+    if (imgMode === 'illus' && !hasIllus(p)) return false; // 博物画模式：只收录有古典图版的物种
     if (state.favOnly && !favs.has(p.id)) return false;
     if (state.order && p.order_en !== state.order) return false;
     if (state.family && p.family_en !== state.family) return false;
@@ -95,14 +107,17 @@ function card(p) {
   const iucn = p.iucn ? `<span class="iucn iucn-${p.iucn}">${p.iucn}</span> ` : '';
   const sci = (p.sci && nameOf(p) !== p.sci) ? `<div class="card-sci">${esc(p.sci)}</div>` : '';
   const habit = p.habit ? ` · ${esc(habitLabel(p.habit))}` : '';
+  const pick = pickImg(p);
+  // in photo mode, hint that a classic plate also exists for this species
+  const illusHint = (!pick.illus && hasIllus(p)) ? `<span class="card-illus" title="${LANG === 'zh' ? '另有博物画' : 'Botanical plate available'}">🎨</span>` : '';
   el.innerHTML =
     `<button class="card-fav${on}" data-fav="${p.id}" title="收藏">${favs.has(p.id) ? '♥' : '♡'}</button>` +
     `<span class="card-num">${p.id}</span>` +
-    `<div class="card-img-wrap loading" style="--ar:${p.ar || 1.2}">` +
-      `<img alt="${esc(nameOf(p))}" data-src="${imgURL(p.thumb || p.img)}">` +
+    `<div class="card-img-wrap loading" style="--ar:${pick.ar || 1.2}">` +
+      `<img alt="${esc(nameOf(p))}" data-src="${imgURL(pick.thumb || pick.img)}">` +
     `</div>` +
     `<div class="card-body">` +
-      `<div class="card-era">${iucn}${esc(familyName(p))}${habit}</div>` +
+      `<div class="card-era">${iucn}${esc(familyName(p))}${habit}${illusHint}</div>` +
       `<div class="card-title">${esc(nameOf(p))}</div>` +
       sci +
     `</div>`;
@@ -194,8 +209,15 @@ function toggleTaxo(on) {
 let modalItem = null;
 function openModal(p) {
   modalItem = p;
-  $('modal-img').src = imgURL(p.img || p.thumb);
+  const pick = pickImg(p, true);
+  $('modal-img').src = imgURL(pick.img || pick.thumb);
   $('modal-img').alt = nameOf(p);
+  // per-species photo ⇄ plate switch (only when both exist)
+  const sw = $('modal-imgswitch');
+  if (hasIllus(p) && p.img) {
+    sw.style.display = '';
+    sw.textContent = pick.illus ? (LANG === 'zh' ? '📷 看照片' : '📷 Photo') : (LANG === 'zh' ? '🎨 看博物画' : '🎨 Plate');
+  } else sw.style.display = 'none';
   $('modal-family').textContent = familyName(p);
   $('modal-title').innerHTML = esc(nameOf(p));
   $('modal-sci').textContent = (p.sci && nameOf(p) !== p.sci) ? p.sci : '';
@@ -207,11 +229,18 @@ function openModal(p) {
   $('modal-iucn').innerHTML = p.iucn ? `<span class="iucn iucn-${p.iucn}">${p.iucn}</span> ${IUCN_LABEL[p.iucn] ? IUCN_LABEL[p.iucn][LANG] : ''}` : tr().unranked;
   $('modal-desc').textContent = descOf(p) || '';
   const wiki = LANG === 'zh' ? `https://zh.wikipedia.org/wiki/${encodeURIComponent(p.zh || p.sci || '')}` : `https://en.wikipedia.org/wiki/${encodeURIComponent((p.en || p.sci || '').replace(/ /g, '_'))}`;
-  const commons = p.file ? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(p.file)}` : null;
+  // credit follows whichever image is currently shown
+  const cFile = pick.illus ? p.illus_file : p.file;
+  const cBy = pick.illus ? p.illus_by : p.cr_by;
+  const cLic = pick.illus ? p.illus_lic : p.cr_lic;
+  const cLicUrl = pick.illus ? p.illus_licurl : p.cr_licurl;
+  const commons = cFile ? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(cFile)}` : null;
   if (commons) {
-    const by = p.cr_by ? `${LANG === 'zh' ? '摄影/作者' : 'By'}: ${esc(p.cr_by)} · ` : '';
-    const lic = p.cr_lic ? (p.cr_licurl ? `<a href="${esc(p.cr_licurl)}" target="_blank" rel="noopener">${esc(p.cr_lic)}</a>` : esc(p.cr_lic)) : '';
-    $('modal-credit').innerHTML = `<span class="mc-label">${LANG === 'zh' ? '图片' : 'Image'}:</span> ${by}<a href="${commons}" target="_blank" rel="noopener">Wikimedia Commons</a>${lic ? ' · ' + lic : ''} · <a href="${wiki}" target="_blank" rel="noopener">${tr().origin}</a>`;
+    const label = pick.illus ? (LANG === 'zh' ? '博物画' : 'Plate') : (LANG === 'zh' ? '图片' : 'Image');
+    const byLabel = pick.illus ? (LANG === 'zh' ? '绘者/来源' : 'Artist/source') : (LANG === 'zh' ? '摄影/作者' : 'By');
+    const by = cBy ? `${byLabel}: ${esc(cBy)} · ` : '';
+    const lic = cLic ? (cLicUrl ? `<a href="${esc(cLicUrl)}" target="_blank" rel="noopener">${esc(cLic)}</a>` : esc(cLic)) : '';
+    $('modal-credit').innerHTML = `<span class="mc-label">${label}:</span> ${by}<a href="${commons}" target="_blank" rel="noopener">Wikimedia Commons</a>${lic ? ' · ' + lic : ''} · <a href="${wiki}" target="_blank" rel="noopener">${tr().origin}</a>`;
   } else {
     $('modal-credit').innerHTML = `<a href="${wiki}" target="_blank" rel="noopener">${tr().origin}</a>`;
   }
@@ -239,11 +268,13 @@ function navModal(dir) {
 let lb = { scale: 1, x: 0, y: 0, dragging: false, sx: 0, sy: 0 };
 function openLightbox(p) {
   const img = $('lb-img');
+  const pick = pickImg(p, true);
   $('lb-spinner').classList.add('show');
-  img.src = imgURL(p.img || p.thumb);
+  img.src = imgURL(pick.img || pick.thumb);
   img.onload = () => $('lb-spinner').classList.remove('show');
-  $('lb-caption').textContent = nameOf(p) + (p.sci ? ` · ${p.sci}` : '');
-  $('lb-original').href = p.file ? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(p.file)}` : '#';
+  $('lb-caption').textContent = nameOf(p) + (p.sci ? ` · ${p.sci}` : '') + (pick.illus ? (LANG === 'zh' ? ' · 博物画' : ' · plate') : '');
+  const lf = pick.illus ? p.illus_file : p.file;
+  $('lb-original').href = lf ? `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(lf)}` : '#';
   lb = { scale: 1, x: 0, y: 0, dragging: false, sx: 0, sy: 0 };
   applyLb();
   $('lightbox').classList.add('open');
@@ -305,6 +336,7 @@ function applyLang() {
   [...$('origin-filter').options].slice(1).forEach(o => o.textContent = LANG === 'zh' ? o.value : (REGION_EN[o.value] || o.value));
   const sf = $('sort-filter'); sf.options[0].textContent = t.sortDefault; sf.options[1].textContent = t.sortTaxo; sf.options[2].textContent = t.sortName;
   $('taxo-btn').textContent = t.taxo; $('fav-only-btn').textContent = t.fav; $('daily-btn').textContent = t.daily; $('random-btn').textContent = t.random;
+  $('illus-btn').textContent = t.illus;
   $('l-order').textContent = t.order; $('l-family').textContent = t.family; $('l-iucn').textContent = t.iucn;
   $('l-habit').textContent = t.lHabit; $('l-origin').textContent = t.lOrigin;
   $('prev-art').textContent = t.prev; $('next-art').textContent = t.next;
@@ -327,6 +359,21 @@ function bind() {
   $('origin-filter').onchange = e => { state.origin = e.target.value; state.page = 1; renderGallery(); };
   $('sort-filter').onchange = e => { state.sort = e.target.value; state.page = 1; renderGallery(); };
   $('taxo-btn').onclick = () => toggleTaxo();
+  $('illus-btn').onclick = () => {
+    imgMode = imgMode === 'illus' ? 'photo' : 'illus';
+    localStorage.setItem('imgmode1001p', imgMode);
+    modalOverride.clear();
+    $('illus-btn').classList.toggle('active', imgMode === 'illus');
+    state.page = 1;
+    renderGallery();
+  };
+  $('modal-imgswitch').onclick = e => {
+    e.stopPropagation();
+    if (!modalItem) return;
+    const cur = pickImg(modalItem, true).illus ? 'photo' : 'illus';
+    modalOverride.set(modalItem.id, cur);
+    openModal(modalItem);
+  };
   $('fav-only-btn').onclick = () => { state.favOnly = !state.favOnly; $('fav-only-btn').classList.toggle('active', state.favOnly); state.page = 1; renderGallery(); };
   $('random-btn').onclick = () => { const p = filtered[Math.floor(Math.random() * filtered.length)] || DATA[Math.floor(Math.random() * DATA.length)]; if (p) openModal(p); };
   $('daily-btn').onclick = () => { const day = Math.floor(Date.now() / 864e5); openModal(DATA[day % DATA.length]); };
@@ -390,6 +437,8 @@ function bind() {
 // ---------- init ----------
 $('fam-count').textContent = new Set(DATA.map(p => p.family_en)).size;
 $('order-count').textContent = new Set(DATA.map(p => p.order_en)).size;
+if (!DATA.some(hasIllus)) { imgMode = 'photo'; $('illus-btn').style.display = 'none'; } // no plates in data yet
+$('illus-btn').classList.toggle('active', imgMode === 'illus');
 fillFilters();
 applyLang();
 bind();

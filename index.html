@@ -27,6 +27,11 @@
 .iucn-EX{background:#333;color:#bbb}.iucn-DD{background:#2a3340;color:#9fb4c8}
 .card-sci{font-style:italic;font-size:0.74rem;color:var(--text3);margin-top:0.15rem}
 .modal-sci{font-style:italic}
+/* 博物画标记与切换 */
+#illus-btn.active{background:var(--gold);border-color:var(--gold);color:#2a2000}
+.card-illus{color:var(--gold);opacity:0.85;margin-left:3px}
+.img-switch{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,0.62);border:1px solid rgba(255,255,255,0.18);color:#fff;height:34px;padding:0 0.7rem;border-radius:8px;cursor:pointer;font-size:0.76rem;display:inline-flex;align-items:center;gap:5px;backdrop-filter:blur(4px);transition:all var(--trans)}
+.img-switch:hover{background:var(--accent);border-color:var(--accent)}
 /* 分类导航（目→科 折叠树） */
 .taxo-index{max-width:1400px;margin:0 auto;padding:0.5rem 2rem 1rem;display:none;flex-direction:column;gap:0.4rem}
 .taxo-index.show{display:flex}
@@ -82,6 +87,7 @@
       <option value="name">按名称</option>
     </select>
     <button id="taxo-btn" class="btn-outline btn-text">按分类</button>
+    <button id="illus-btn" class="btn-outline btn-text" title="切换照片 / 古典博物画">🎨 博物画</button>
     <button id="fav-only-btn" class="btn-outline btn-text">♥ 收藏</button>
     <button id="daily-btn" class="btn-outline btn-text">每日一株</button>
     <button id="random-btn" class="btn-accent">随机</button>
@@ -101,6 +107,7 @@
     <div class="modal-content">
       <div class="modal-img-wrap" id="modal-img-wrap">
         <img id="modal-img" alt="">
+        <button class="img-switch" id="modal-imgswitch" title="切换照片 / 博物画" style="display:none"></button>
         <button class="zoom-badge" id="zoom-badge" title="放大">⛶</button>
       </div>
       <div class="modal-info">
